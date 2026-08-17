@@ -1,0 +1,12 @@
+import { z } from "zod";
+
+export const createPostSchema = z.object({
+  userId: z.coerce.number().int().positive(),
+
+  title: z
+    .string()
+    .min(3, "title minimal 3 huruf")
+    .max(255, "title max 255 huruf"),
+    
+  content: z.string().min(10, "content minimal 10 huruf"),
+});
