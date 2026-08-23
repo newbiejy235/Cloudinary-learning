@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { createPostSchema } from "../../validations/post.validation";
 import { db } from "../../config/db";
 import { postsTable } from "../../config/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { uploadToCloudinary } from "../../service/cloudinary.service";
 
 export class PostController {
@@ -37,12 +37,60 @@ export class PostController {
         },
       });
     } catch (error) {
-        console.error("Failed to post image,error : ", error)
-        return res.status(201).json({
-            success: false,
-            message: "Terjadi kesalahan pada server",
-            error : error instanceof Error ? error.message : error,
-        })
+      console.error("Failed to post image,error : ", error);
+      return res.status(201).json({
+        success: false,
+        message: "Terjadi kesalahan pada server",
+        error: error instanceof Error ? error.message : error,
+      });
+    }
+  };
+
+  getAll = async (req: Request, res: Response) => {
+    try {
+      const data = await db
+        .select()
+        .from(postsTable)
+        .orderBy(desc(postsTable.createdAt))
+        .where(eq(postsTable.status, "published"));
+      return res.json({
+        success: true,
+        message: "berhasil get",
+        data: {
+          postData: data,
+        },
+      });
+    } catch (error) {
+      return res.status(201).json({
+        success: false,
+        message: "Terjadi kesalahan pada server",
+        error: error,
+      });
+    }
+  };
+
+  detail = async (req: Request, res: Response) => {
+    try {
+      const postId = Number(req.params.id);
+
+      const result = await db
+        .select()
+        .from(postsTable)
+        .where(eq(postsTable.id, postId));
+
+      return res.json({
+        success: true,
+        message: "berhasil get",
+        data: {
+          postData: result,
+        },
+      });
+    } catch (error) {
+      return res.status(201).json({
+        success: false,
+        message: "Terjadi kesalahan pada server",
+        error: error,
+      });
     }
   };
 }

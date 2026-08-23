@@ -1,9 +1,14 @@
+import dotenv from "dotenv";
 import { Request, Response } from "express";
 import { registerSchema, loginSchema } from "../../validations/auth.validation";
 import { db } from "../../config/db";
 import { eq, and } from "drizzle-orm";
 import { usersTable } from "../../config/schema";
 import bcrypt from "bcryptjs";
+import Jwt from "jsonwebtoken";
+
+
+dotenv.config();
 
 export class AuthController {
   register = async (req: Request, res: Response) => {
@@ -68,8 +73,17 @@ export class AuthController {
       password,
       isValidEmail.password,
     );
-    console.log("data hashed",hashedPassword);
-    
+    console.log("data hashed", hashedPassword);
+    const token = Jwt.sign(
+      {
+        id: isValidEmail.id,
+        username: isValidEmail.username,
+        email: isValidEmail.email,
+        role: isValidEmail.role,
+      },
+      process.env.JWT_SECRET!,
+      { expiresIn: "1d" },
+    );
 
     if (!hashedPassword) {
       return res.status(401).json({
@@ -89,9 +103,12 @@ export class AuthController {
       success: true,
       message: `success login, welcome ${findUsername?.username}`,
       data: {
+        token: token,
         users: {
+          id : isValidEmail.id,
           email: isValidEmail.email,
           username: findUsername?.username,
+          role : isValidEmail.role
         },
       },
     });

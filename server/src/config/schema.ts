@@ -7,7 +7,7 @@ import {
   timestamp,
 } from "drizzle-orm/mysql-core";
 
-export const USER_ROLES = ["user", "admin"] as const;
+export const USER_ROLES = ["user", "admin", "guest"] as const;
 
 export const POST_STATUS = ["delete", "published"] as const;
 
