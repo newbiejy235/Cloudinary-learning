@@ -23,3 +23,17 @@ export const userPostParamsSchema = z.object({
   userId: z.coerce.number().int().positive(),
   postId: z.coerce.number().int().positive(),
 });
+
+export const updatePostSchema = z.object({
+  title: z
+    .string()
+    .min(3, "title minimal 3 karakter")
+    .max(255, "maksimal title 255 karakter")
+    .optional(),
+
+  content: z.string().min(10, "content minimal 10").optional(),
+});
+
+export const updatePostParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+});

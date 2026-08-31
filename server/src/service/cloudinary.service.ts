@@ -12,11 +12,31 @@ export const uploadToCloudinary = (
       (error, result) => {
         if (error || !result) return reject(error);
         resolve({
-            secure_url: result.secure_url,
-            public_id : result.public_id
+          secure_url: result.secure_url,
+          public_id: result.public_id,
         });
       },
     );
-    uploadStream.end(fileBuffer)
+    uploadStream.end(fileBuffer);
   });
 };
+
+export const deleteFromCloudinary = (publicId: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.destroy(
+      publicId,
+      {
+        resource_type: "image",
+      },
+      (error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      },
+    );
+  });
+};
+
+

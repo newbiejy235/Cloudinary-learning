@@ -1,9 +1,17 @@
 import { Request, Response } from "express";
-import { createPostSchema } from "../../validations/post.validation";
+import {
+  createPostSchema,
+  postIdSchema,
+  updatePostParamsSchema,
+  updatePostSchema,
+} from "../../validations/post.validation";
 import { db } from "../../config/db";
 import { postsTable } from "../../config/schema";
 import { eq, and, desc } from "drizzle-orm";
-import { uploadToCloudinary } from "../../service/cloudinary.service";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinary,
+} from "../../service/cloudinary.service";
 
 export class PostController {
   crreatePost = async (req: Request, res: Response) => {
@@ -91,6 +99,110 @@ export class PostController {
         message: "Terjadi kesalahan pada server",
         error: error,
       });
+    }
+  };
+
+  updatePost = async (req: Request, res: Response) => {
+    try {
+      const validatedParams = updatePostParamsSchema.parse(req.params);
+      const { id } = validatedParams;
+
+      const validateData = updatePostSchema.parse(req.body);
+      const { title, content } = validateData;
+
+      const [existingPost] = await db.select().from(postsTable);
+
+      if (!existingPost) {
+        return res.status(404).json({
+          success: false,
+          message: "post not found",
+        });
+      }
+
+      let imageUrl = existingPost.imageUrl;
+      let imagePublicId = existingPost.imagePublicId;
+
+      if (req.file) {
+        const uploadResult = await uploadToCloudinary(req.file.buffer);
+        imageUrl = uploadResult.secure_url;
+        imagePublicId = uploadResult.public_id;
+      }
+
+      if (existingPost.imagePublicId) {
+        await deleteFromCloudinary(existingPost.imagePublicId);
+      }
+
+      await db
+        .update(postsTable)
+        .set({
+          ...(title !== undefined && {
+            title,
+          }),
+
+          ...(content !== undefined && {
+            content,
+          }),
+
+          ...(req.file && {
+            imageUrl,
+            imagePublicId,
+          }),
+        })
+        .where(eq(postsTable.id, id));
+
+      const [updatePost] = await db
+        .select()
+        .from(postsTable)
+        .where(eq(postsTable.id, id));
+
+      return res.status(200).json({
+        success: true,
+        message: "post update successfully",
+        data: {
+          post: updatePost,
+        },
+      });
+    } catch (error: any) {
+      console.error("update ppost error: ", error);
+      return res.status(500).json({
+        success: false,
+        message: "internal server error",
+        error: error.message,
+      });
+    }
+  };
+
+  deletePost = async (req: Request, res: Response) => {
+    try {
+      const validatedParams = postIdSchema.parse(req.params);
+      const { id } = validatedParams;
+
+      const existingPost = await db.query.postsTable.findFirst({
+        where : eq(postsTable.id, id)
+      })
+
+      if (!existingPost) {
+        return res.status(404).json({
+          success : false,
+          message : "post not found"
+        })
+
+
+      }
+
+      await db.update(postsTable).set({status :"delete"}).where(eq(postsTable.id, id))
+
+      return res.status(200).json({
+        success : true, 
+        message : "post deleted successfully"
+      })
+    } catch (error: any) {
+      console.error("Delete post error :", error)
+      return res.status(500).json({
+        success : false,
+        message : "Internal server error",
+        error : error.message
+      })
     }
   };
 }
